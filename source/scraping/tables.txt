@@ -1,0 +1,24 @@
+CREATE TABLE members (
+   id int NOT NULL,
+   name TINYTEXT NOT NULL,
+   hours int NOT NULL,
+   role int NOT NULL,
+   lines_added int NOT NULL,
+   lines_removed int NOT NULL,
+   PRIMARY KEY(id)
+);
+
+CREATE TABLE projects (
+   id int NOT NULL,
+   name TINYTEXT NOT NULL,
+   PRIMARY KEY(id)
+);
+
+CREATE TABLE worked_on (
+   project_id int NOT NULL,
+   member_id int NOT NULL,
+   PRIMARY KEY(project_id, member_id)
+);
+
+ALTER TABLE projects MODIFY `id` INT(11) NOT NULL AUTO_INCREMENT;
+ALTER TABLE members MODIFY `id` INT(11) NOT NULL AUTO_INCREMENT;
