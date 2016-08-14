@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.link {
+  stroke: #ccc;
+}
+
+.node text {
+  pointer-events: none;
+  font: 10px sans-serif;
+}
+
+.Project text {
+  pointer-events: none;
+  font: 10px sans-serif;
+}
+
+.Member text {
+  pointer-events: none;
+  font: 10px sans-serif;
+}
+
+.graph-body {
+    background-color: #151515;
+}
+
+.d3-tip {
+    line-height: 1;
+    color: black;
+    font-size: 10px;
+    -webkit-text-stroke-width: 1px;
+    -webkit-text-stroke-color: white;
+}
+
+</style>
+<body>
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script type='text/javascript' src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"> </script>
+<script>
+
+var width = 1920,
+    height = 1080
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("class", "graph-body");
+
+var force = d3.layout.force()
+    .gravity(0.07)
+    .distance(70)
+    .charge(function (d) {return d.weight * -400})
+    .size([width, height]);
+
+d3.json("/people", function(error, people) {
+    if (error) throw error;
+
+    d3.json("/projects", function(error, projects) {
+
+        if (error) throw error;
+        d3.json("/worked_on", function(error, worked_on) {
+
+            var nodes = people.concat(projects);
+            var nodeById = d3.map();
+
+            nodes.forEach(function(node) {
+              nodeById.set(node.id, node);
+              nodeById.set(node.type, node.type);
+              nodeById.set(node.role, node.role);
+              nodeById.set(node.lines_removed, node.lines_removed);
+              nodeById.set(node.lines_added, node.lines_added);
+            });
+
+            worked_on.forEach(function(link) {
+                link.source = nodeById.get(link.source);
+                link.target = nodeById.get(link.target);
+            });
+            force
+                .nodes(nodes)
+                .links(worked_on)
+                .start();
+
+            var link = svg.selectAll(".link")
+                .data(worked_on)
+                .enter().append("line")
+                .style("opacity", 0.15)
+                .attr("class", "link")
+
+            //Set up tooltip
+            var tip = d3.tip()
+                .attr('class', 'd3-tip')
+                .offset([-10, 0])
+                .html(function (d) {
+                    if (d.type == "Project") return d.weight + " people worked on this";
+                    return "Lines added: " + d.lines_added + "<br>" + "Lines removed: " + d.lines_removed;
+            })
+            svg.call(tip);
+
+
+            var node = svg.selectAll(".node")
+                .data(nodes)
+                .enter().append("g")
+                .attr("class", "node")
+                .call(force.drag)
+                .on('dblclick', connectedNodes) //Added code
+                .on('mouseover', tip.show) //Added
+                .on('mouseout', tip.hide); //Added
+
+            node.append("circle")
+                .attr("r", function(d){ return d.weight * 1.5;})
+                .style("fill", function (d) {
+                    if (d.type == "Project") return "#D00000";
+                    if (d.role == 1) return "9900CC";
+                    if (d.role == 2) return "0099CC";
+                    if (d.role == 3) return "00CC99";
+                    return "FFFFFF";
+
+                });
+
+                //Toggle stores whether the highlighting is on
+                var toggle = 0;
+                //Create an array logging what is connected to what
+                var linkedByIndex = {};
+                for (i = 0; i < nodes.length; i++) {
+                    linkedByIndex[i + "," + i] = 1;
+                };
+                worked_on.forEach(function (d) {
+                    linkedByIndex[d.source.index + "," + d.target.index] = 1;
+                });
+                //This function looks up whether a pair are neighbours
+                function neighboring(a, b) {
+                    return linkedByIndex[a.index + "," + b.index];
+                }
+                function connectedNodes() {
+                    if (toggle == 0) {
+                        //Reduce the opacity of all but the neighbouring nodes
+                        d = d3.select(this).node().__data__;
+                        node.style("opacity", function (o) {
+                            return neighboring(d, o) | neighboring(o, d) ? 1 : 0.1;
+                        });
+                        link.style("opacity", function (o) {
+                            return d.index==o.source.index | d.index==o.target.index ? 1 : 0.1;
+                        });
+                        //Reduce the op
+                        toggle = 1;
+                    } else {
+                        //Put them back to opacity=1
+                        node.style("opacity", 1);
+                        link.style("opacity", 0.1);
+                        toggle = 0;
+                    }
+                }
+            node.append("text")
+                  .attr("dx", 10)
+                  .attr("dy", ".35em")
+                  .text(function(d) { return d.name })
+                  .style("stroke", "white")
+                  .style("fill", "blue")
+                  .attr("stroke-width", 1);
+
+            force.on("tick", function () {
+                link.attr("x1", function (d) {
+                      return d.source.x;
+                })
+                .attr("y1", function (d) {
+                  return d.source.y;
+                })
+                .attr("x2", function (d) {
+                  return d.target.x;
+                })
+                .attr("y2", function (d) {
+                  return d.target.y;
+                });
+                d3.selectAll("circle").attr("cx", function (d) {
+                  return d.x;
+                })
+                .attr("cy", function (d) {
+                  return d.y;
+                });
+
+                d3.selectAll("text").attr("x", function (d) {
+                  return d.x;
+                })
+                .attr("y", function (d) {
+                  return d.y;
+                });
+            });
+        });
+    });
+});
+
+</script>
