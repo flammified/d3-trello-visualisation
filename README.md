@@ -2,7 +2,7 @@
 
 This repository contains a bunch of scripts that build a D3 visualisation of a project that is managed using Trello. It is built for a specific project that I was a part of at the University of Applied Sciences Utrecht called R2D2 (Roving Robots and Distributed Devices).
 
-Names and data have been removed from the scripts, just in case peopel don't want their name attached publicly.
+Names and data have been removed from the scripts, just in case people don't want their name attached publicly.
 
 ## Usage
 
